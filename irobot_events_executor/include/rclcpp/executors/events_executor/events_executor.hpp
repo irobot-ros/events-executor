@@ -51,12 +51,15 @@ public:
   /// Default constructor. See the default constructor for Executor.
   /**
    * \param[in] events_queue The queue used to store events.
+   * \param[in] execute_timers_separate_thread If true, timers are executed in a separate
+   * thread. If false, timers are executed in the same thread as all other entities.
    * \param[in] options Options used to configure the executor.
    */
   RCLCPP_PUBLIC
   explicit EventsExecutor(
     rclcpp::executors::EventsQueue::UniquePtr events_queue = std::make_unique<
       rclcpp::executors::SimpleEventsQueue>(),
+    bool execute_timers_separate_thread = false,
     const rclcpp::ExecutorOptions & options = rclcpp::ExecutorOptions());
 
   /// Default destrcutor.

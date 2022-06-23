@@ -10,9 +10,10 @@ namespace executors
 
 enum ExecutorEventType
 {
+  CLIENT_EVENT,
   SUBSCRIPTION_EVENT,
   SERVICE_EVENT,
-  CLIENT_EVENT,
+  TIMER_EVENT,
   WAITABLE_EVENT
 };
 

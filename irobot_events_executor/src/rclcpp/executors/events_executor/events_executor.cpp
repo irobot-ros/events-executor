@@ -17,6 +17,7 @@ using rclcpp::executors::EventsExecutor;
 
 EventsExecutor::EventsExecutor(
   rclcpp::executors::EventsQueue::UniquePtr events_queue,
+  bool execute_timers_separate_thread,
   const rclcpp::ExecutorOptions & options)
 : rclcpp::Executor(options)
 {
@@ -27,7 +28,14 @@ EventsExecutor::EventsExecutor(
   events_queue_ = std::move(events_queue);
 
   // Create timers manager
-  timers_manager_ = std::make_shared<TimersManager>(context_);
+  std::function<void(void *)> timer_on_ready_cb = nullptr;
+  if (execute_timers_separate_thread) {
+    timer_on_ready_cb = [this](const void * timer_id) {
+        ExecutorEvent event = {timer_id, -1, ExecutorEventType::TIMER_EVENT, 1};
+        this->events_queue_->enqueue(event);
+      };
+  }
+  timers_manager_ = std::make_shared<TimersManager>(context_, timer_on_ready_cb);
 
   // Create entities collector
   entities_collector_ = std::make_shared<EventsExecutorEntitiesCollector>(this);
@@ -48,10 +56,10 @@ EventsExecutor::spin()
   if (spinning.exchange(true)) {
     throw std::runtime_error("spin() called while already spinning");
   }
-  RCPPUTILS_SCOPE_EXIT(this->spinning.store(false););
+  RCPPUTILS_SCOPE_EXIT(this->spinning.store(false); );
 
   timers_manager_->start();
-  RCPPUTILS_SCOPE_EXIT(timers_manager_->stop(););
+  RCPPUTILS_SCOPE_EXIT(timers_manager_->stop(); );
 
   while (rclcpp::ok(context_) && spinning.load()) {
     // Wait until we get an event
@@ -66,7 +74,7 @@ EventsExecutor::spin()
 void
 EventsExecutor::spin_some(std::chrono::nanoseconds max_duration)
 {
-  this->spin_some_impl(max_duration, false);
+  return this->spin_some_impl(max_duration, false);
 }
 
 void
@@ -85,7 +93,7 @@ EventsExecutor::spin_some_impl(std::chrono::nanoseconds max_duration, bool exhau
     throw std::runtime_error("spin_some() called while already spinning");
   }
 
-  RCPPUTILS_SCOPE_EXIT(this->spinning.store(false););
+  RCPPUTILS_SCOPE_EXIT(this->spinning.store(false); );
 
   auto start = std::chrono::steady_clock::now();
 
@@ -108,22 +116,11 @@ EventsExecutor::spin_some_impl(std::chrono::nanoseconds max_duration, bool exhau
   size_t executed_timers = 0;
 
   while (rclcpp::ok(context_) && spinning.load() && max_duration_not_elapsed()) {
-    // Execute first timer if it is ready
-    if (exhaustive || (executed_timers < ready_timers_at_start)) {
-      bool timer_executed = timers_manager_->execute_head_timer();
-      if (timer_executed) {
-        //std::cout<<"Has timer"<<std::endl;
-        executed_timers++;
-        continue;
-      }
-    }
-    
     // Execute first ready event from queue if exists
     if (exhaustive || (executed_events < ready_events_at_start)) {
       bool has_event = !events_queue_->empty();
 
       if (has_event) {
-        //std::cout<<"Has event"<<std::endl;
         ExecutorEvent event;
         bool ret = events_queue_->dequeue(event, std::chrono::nanoseconds(0));
         if (ret) {
@@ -133,7 +130,16 @@ EventsExecutor::spin_some_impl(std::chrono::nanoseconds max_duration, bool exhau
         }
       }
     }
-    //std::cout<<"Spin break" <<std::endl;
+
+    // Execute first timer if it is ready
+    if (exhaustive || (executed_timers < ready_timers_at_start)) {
+      bool timer_executed = timers_manager_->execute_head_timer();
+      if (timer_executed) {
+        executed_timers++;
+        continue;
+      }
+    }
+
     // If there's no more work available, exit
     break;
   }
@@ -206,31 +212,7 @@ void
 EventsExecutor::execute_event(const ExecutorEvent & event)
 {
   switch (event.type) {
-    case SUBSCRIPTION_EVENT:
-      {
-        auto subscription = entities_collector_->get_subscription(event.exec_entity_id);
-
-        if (subscription) {
-          for (size_t i = 0; i < event.num_events; i++) {
-            execute_subscription(subscription);
-          }
-        }
-        break;
-      }
-
-    case SERVICE_EVENT:
-      {
-        auto service = entities_collector_->get_service(event.exec_entity_id);
-
-        if (service) {
-          for (size_t i = 0; i < event.num_events; i++) {
-            execute_service(service);
-          }
-        }
-        break;
-      }
-
-    case CLIENT_EVENT:
+    case ExecutorEventType::CLIENT_EVENT:
       {
         auto client = entities_collector_->get_client(event.exec_entity_id);
 
@@ -241,8 +223,34 @@ EventsExecutor::execute_event(const ExecutorEvent & event)
         }
         break;
       }
+    case ExecutorEventType::SUBSCRIPTION_EVENT:
+      {
+        auto subscription = entities_collector_->get_subscription(event.exec_entity_id);
 
-    case WAITABLE_EVENT:
+        if (subscription) {
+          for (size_t i = 0; i < event.num_events; i++) {
+            execute_subscription(subscription);
+          }
+        }
+        break;
+      }
+    case ExecutorEventType::SERVICE_EVENT:
+      {
+        auto service = entities_collector_->get_service(event.exec_entity_id);
+
+        if (service) {
+          for (size_t i = 0; i < event.num_events; i++) {
+            execute_service(service);
+          }
+        }
+        break;
+      }
+    case ExecutorEventType::TIMER_EVENT:
+      {
+        timers_manager_->execute_ready_timer(event.exec_entity_id);
+        break;
+      }
+    case ExecutorEventType::WAITABLE_EVENT:
       {
         auto waitable = entities_collector_->get_waitable(event.exec_entity_id);
 

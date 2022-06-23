@@ -7,6 +7,7 @@
 #include <atomic>
 #include <chrono>
 #include <condition_variable>
+#include <functional>
 #include <memory>
 #include <mutex>
 #include <thread>
@@ -54,8 +55,12 @@ public:
    *
    * @param context custom context to be used.
    * Shared ownership of the context is held until destruction.
+   * @param on_ready_callback The timers on ready callback. if not callable,
+   * this object will directly execute timers when they are ready.
    */
-  explicit TimersManager(std::shared_ptr<rclcpp::Context> context);
+  TimersManager(
+    std::shared_ptr<rclcpp::Context> context,
+    std::function<void(void *)> on_ready_callback = nullptr);
 
   /**
    * @brief Destruct the TimersManager object making sure to stop thread and release memory.
@@ -109,11 +114,11 @@ public:
   /**
    * @brief Get the number of timers that are currently ready.
    * This function is thread safe.
-   * 
+   *
    * @return size_t number of ready timers.
    * @throws std::runtime_error if the timers thread was already running.
    */
-   size_t get_number_ready_timers();
+  size_t get_number_ready_timers();
 
   /**
    * @brief Executes head timer if ready.
@@ -123,6 +128,14 @@ public:
    * @throws std::runtime_error if the timers thread was already running.
    */
   bool execute_head_timer();
+
+  /**
+   * @brief Executes timer identified by its ID.
+   * This function is thread safe.
+   *
+   * @param timer_id the timer ID of the timer to execute
+   */
+  void execute_ready_timer(const void * timer_id);
 
   /**
    * @brief Get the amount of time before the next timer triggers.
@@ -194,6 +207,17 @@ public:
       return removed;
     }
 
+    TimerPtr get_timer(const void * timer_id)
+    {
+      for (auto & weak_timer : weak_heap_) {
+        auto timer = weak_timer.lock();
+        if (timer.get() == timer_id) {
+          return timer;
+        }
+      }
+      return nullptr;
+    }
+
     /**
      * @brief Returns a const reference to the front element.
      */
@@ -228,13 +252,13 @@ public:
         if (timer) {
           // This timer is valid, so add it to the locked heap
           // Note: we access friend private `owned_heap_` member field.
-          locked_heap.owned_heap_.push_back(std::move(timer)); 
+          locked_heap.owned_heap_.push_back(std::move(timer));
         } else {
           // This timer went out of scope, so we don't add it to locked heap
           // and we mark the corresponding flag.
           // It's not needed to erase it from weak heap, as we are going to re-heapify.
           // Note: we can't exit from the loop here, as we need to find all valid timers.
-          any_timer_destroyed = true;   
+          any_timer_destroyed = true;
         }
       }
 
@@ -373,7 +397,7 @@ public:
 
       for (TimerPtr t : owned_heap_) {
         if (t->is_ready()) {
-          ready_timers++;    
+          ready_timers++;
         }
       }
 
@@ -424,6 +448,7 @@ private:
      */
     static bool timer_greater(TimerPtr a, TimerPtr b)
     {
+      // FIXME!
       return a->time_until_trigger() > b->time_until_trigger();
     }
 
@@ -454,13 +479,16 @@ private:
    */
   void execute_ready_timers_unsafe();
 
+  // Callback to be called when timer is ready
+  std::function<void(void *)> on_ready_callback_ = nullptr;
+
   // Thread used to run the timers execution task
   std::thread timers_thread_;
   // Protects access to timers
   std::mutex timers_mutex_;
   // Notifies the timers thread whenever timers are added/removed
   std::condition_variable timers_cv_;
-  // Flag used as predicate by timers_cv_ that denotes one or more timers being added/removed 
+  // Flag used as predicate by timers_cv_ that denotes one or more timers being added/removed
   bool timers_updated_ {false};
   // Indicates whether the timers thread is currently running or not
   std::atomic<bool> running_ {false};

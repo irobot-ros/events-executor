@@ -10,9 +10,12 @@
 
 using rclcpp::TimersManager;
 
-TimersManager::TimersManager(std::shared_ptr<rclcpp::Context> context)
+TimersManager::TimersManager(
+  std::shared_ptr<rclcpp::Context> context,
+  std::function<void(void *)> on_ready_callback)
 {
   context_ = context;
+  on_ready_callback_ = on_ready_callback;
 }
 
 TimersManager::~TimersManager()
@@ -79,7 +82,7 @@ std::chrono::nanoseconds TimersManager::get_head_timeout()
   // Do not allow to interfere with the thread running
   if (running_) {
     throw std::runtime_error(
-            "TimersManager::get_head_timeout() can't be used while timers thread is running");
+            "get_head_timeout() can't be used while timers thread is running");
   }
 
   std::unique_lock<std::mutex> lock(timers_mutex_);
@@ -91,7 +94,7 @@ size_t TimersManager::get_number_ready_timers()
   // Do not allow to interfere with the thread running
   if (running_) {
     throw std::runtime_error(
-            "TimersManager::get_number_ready_timers() can't be used while timers thread is running");
+            "get_number_ready_timers() can't be used while timers thread is running");
   }
 
   std::unique_lock<std::mutex> lock(timers_mutex_);
@@ -104,7 +107,7 @@ void TimersManager::execute_ready_timers()
   // Do not allow to interfere with the thread running
   if (running_) {
     throw std::runtime_error(
-            "TimersManager::execute_ready_timers() can't be used while timers thread is running");
+            "execute_ready_timers() can't be used while timers thread is running");
   }
 
   std::unique_lock<std::mutex> lock(timers_mutex_);
@@ -116,7 +119,7 @@ bool TimersManager::execute_head_timer()
   // Do not allow to interfere with the thread running
   if (running_) {
     throw std::runtime_error(
-            "TimersManager::execute_head_timer() can't be used while timers thread is running");
+            "execute_head_timer() can't be used while timers thread is running");
   }
 
   std::unique_lock<std::mutex> lock(timers_mutex_);
@@ -132,8 +135,12 @@ bool TimersManager::execute_head_timer()
 
   const bool timer_ready = head_timer->is_ready();
   if (timer_ready) {
-    // Invoke the timer callback
-    head_timer->execute_callback();
+    head_timer->call();
+    if (on_ready_callback_) {
+      on_ready_callback_(head_timer.get());
+    } else {
+      head_timer->execute_callback();
+    }
     timers_heap.heapify_root();
     weak_timers_heap_.store(timers_heap);
   }
@@ -141,11 +148,23 @@ bool TimersManager::execute_head_timer()
   return timer_ready;
 }
 
+void TimersManager::execute_ready_timer(const void * timer_id)
+{
+  TimerPtr ready_timer;
+  {
+    std::unique_lock<std::mutex> lock(timers_mutex_);
+    ready_timer = weak_timers_heap_.get_timer(timer_id);
+  }
+  if (ready_timer) {
+    ready_timer->execute_callback();
+  }
+}
+
 std::chrono::nanoseconds TimersManager::get_head_timeout_unsafe()
 {
   // If we don't have any weak pointer, then we just return maximum timeout
   if (weak_timers_heap_.empty()) {
-    return std::chrono::nanoseconds::max();;
+    return std::chrono::nanoseconds::max();
   }
   // Weak heap is not empty, so try to lock the first element.
   // If it is still a valid pointer, it is guaranteed to be the correct head
@@ -159,7 +178,7 @@ std::chrono::nanoseconds TimersManager::get_head_timeout_unsafe()
     // don't have to call `weak_timers_heap_.store(locked_heap)` at the end.
 
     if (locked_heap.empty()) {
-      return std::chrono::nanoseconds::max();;
+      return std::chrono::nanoseconds::max();
     }
     head_timer = locked_heap.front();
   }
@@ -185,13 +204,16 @@ void TimersManager::execute_ready_timers_unsafe()
   const size_t number_ready_timers = locked_heap.get_number_ready_timers();
   size_t executed_timers = 0;
   while (executed_timers < number_ready_timers && head_timer->is_ready()) {
-    // Execute head timer
-    head_timer->execute_callback();
+    head_timer->call();
+    if (on_ready_callback_) {
+      on_ready_callback_(head_timer.get());
+    } else {
+      head_timer->execute_callback();
+    }
 
     executed_timers++;
     // Executing a timer will result in updating its time_until_trigger, so re-heapify
     locked_heap.heapify_root();
-
     // Get new head timer
     head_timer = locked_heap.front();
   }
@@ -215,7 +237,8 @@ void TimersManager::run_timers()
         // Wait until timeout or notification that timers have been updated
         timers_cv_.wait_for(lock, time_to_sleep, [this]() {return timers_updated_;});
       } else {
-        timers_cv_.wait(lock, [this]() {return timers_updated_;});  
+        // Wait until notification that timers have been updated
+        timers_cv_.wait(lock, [this]() {return timers_updated_;});
       }
     }
 
