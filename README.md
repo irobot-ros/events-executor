@@ -1,11 +1,22 @@
 # events-executor
 
 This repository contains a C++ implementation of the `EventsExecutor` designed by iRobot.
+It is a new type of executor compatible with the ROS 2 `rclcpp` library.
 
-This is a new type of executor compatible with the ROS 2 `rclcpp` library.
-It does not rely on the waitset as the default executors, but rather it uses the recently introduced "listener APIs".
+The `EventsExecutor` design is based on the following principles:
 
-The main motivation for this executor is to greatly improve the performance of ROS 2 (in particular reducing latency and CPU usage).
+ 1. You don't pay for what you don't use.
+ 2. The abstractions between the application and the RMW should have minimal overhead.
+ 3. Extensibility.
+
+![Executors Comparison](executors-comparison.png)
+
+The following data have been measured using the iRobot [ros2-performance](https://github.com/irobot-ros/ros2-performance) framework and show how, for a 10 nodes system, the `EventsExecutor` reduces both CPU and latency by 75% with respect to the default `SingleThreadedExecutor` and by 50% with respect to the `StaticSingleThreadedExecutor`.
+
+These results have been obtained using the default implementation of the `EventsExecutor` events queue, i.e. an `std::queue`.
+The extensibility of the `EventsExecutor` comes from the fact that this core components can be re-implemented by the users.
+For example in this repository we also include an extension that uses a lock-free queue, based on this great [concurrent queue](https://github.com/cameron314/concurrentqueue) implementation. 
+Other extensions would allow to bound the queue or enforce deterministic execution constraints.
 
 ## Instructions
 
@@ -24,6 +35,7 @@ To build and run the examples you can do the following:
 
 ```
 docker run -it osrf/ros:humble-desktop bash
+sudo apt-get update && sudo apt-get upgrade && sudo apt-get install ros-humble-test-msgs
 mkdir -p /root/ws/src
 cd /root/ws/src
 git clone https://github.com/irobot-ros/events-executor.git
@@ -55,5 +67,3 @@ List of Pull Requests that are introducing the `EventsExecutor` in the ROS 2 cor
 ## Known bugs and limitations
 
  - The `EventsExecutor` is not notified when a ROS 2 timer is reset.
-
-## Troubleshooting
