@@ -3,6 +3,7 @@
 #ifndef RCLCPP__EXECUTORS__EVENTS_EXECUTOR__SIMPLE_EVENTS_QUEUE_HPP_
 #define RCLCPP__EXECUTORS__EVENTS_EXECUTOR__SIMPLE_EVENTS_QUEUE_HPP_
 
+#include <condition_variable>
 #include <mutex>
 #include <queue>
 #include <utility>
@@ -110,11 +111,9 @@ private:
   mutable std::mutex mutex_;
   // Variable used to notify when an event is added to the queue
   std::condition_variable events_queue_cv_;
-
 };
 
 }  // namespace executors
 }  // namespace rclcpp
-
 
 #endif  // RCLCPP__EXECUTORS__EVENTS_EXECUTOR__SIMPLE_EVENTS_QUEUE_HPP_

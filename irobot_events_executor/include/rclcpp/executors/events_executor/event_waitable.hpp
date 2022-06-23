@@ -32,7 +32,7 @@ public:
   // Stub API: not used by EventsExecutor
   RCLCPP_PUBLIC
   bool
-  is_ready(rcl_wait_set_t * wait_set) override final
+  is_ready(rcl_wait_set_t * wait_set) final
   {
     (void)wait_set;
     throw std::runtime_error("EventWaitable can't be checked if it's ready");
@@ -42,7 +42,7 @@ public:
   // Stub API: not used by EventsExecutor
   RCLCPP_PUBLIC
   void
-  add_to_wait_set(rcl_wait_set_t * wait_set) override final
+  add_to_wait_set(rcl_wait_set_t * wait_set) final
   {
     (void)wait_set;
     throw std::runtime_error("EventWaitable can't be added to a wait_set");

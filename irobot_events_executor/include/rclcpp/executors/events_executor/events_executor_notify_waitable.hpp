@@ -53,9 +53,9 @@ public:
     // The second argument of the callback should identify which guard condition
     // triggered the event. However it's not relevant here as we only
     // care about waking up the executor, so we pass a 0.
-    auto gc_callback = [callback](size_t count){
-      callback(count, 0);
-    };
+    auto gc_callback = [callback](size_t count) {
+        callback(count, 0);
+      };
 
     for (auto gc : notify_guard_conditions_) {
       gc->set_on_trigger_callback(gc_callback);
@@ -76,7 +76,7 @@ public:
   {
     (void) id;
     return take_data();
-  };
+  }
 
 private:
   std::list<rclcpp::GuardCondition *> notify_guard_conditions_;

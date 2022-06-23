@@ -1,7 +1,8 @@
 // Copyright 2022 iRobot Corporation. All Rights Reserved
 
-#include <ctime>
 #include <inttypes.h>
+
+#include <ctime>
 #include <iostream>
 #include <memory>
 #include <stdexcept>
