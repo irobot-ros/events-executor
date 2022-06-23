@@ -1,2 +1,11 @@
 # events-executor
-ROS 2 C++ executor bringing low CPU usage, low latency and deterministic ordering
+
+This repository contains a C++ implementation of the Events Executor designed by iRobot.
+
+## Instructions
+
+## Examples
+
+## Known bugs and limitations
+
+## Troubleshooting
