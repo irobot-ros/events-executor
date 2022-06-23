@@ -20,6 +20,7 @@ target_sources(irobot_events_executor
   PRIVATE
   src/rclcpp/executors/events_executor/events_executor_entities_collector.cpp
   src/rclcpp/executors/events_executor/events_executor.cpp
+  src/rclcpp/executors/entities_collector_base.cpp
   src/rclcpp/timers_manager.cpp
 )
 
