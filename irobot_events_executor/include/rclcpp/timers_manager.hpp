@@ -16,6 +16,7 @@
 
 #include "rclcpp/context.hpp"
 #include "rclcpp/timer.hpp"
+#include "rclcpp/sync_primitives.hpp"
 
 namespace rclcpp
 {
@@ -492,11 +493,11 @@ private:
   // Thread used to run the timers execution task
   std::thread timers_thread_;
   // Protects access to timers
-  std::mutex timers_mutex_;
+  rclcpp::RecursiveMutex timers_mutex_;
   // Protects access to stop()
-  std::mutex stop_mutex_;
+  rclcpp::RecursiveMutex stop_mutex_;
   // Notifies the timers thread whenever timers are added/removed
-  std::condition_variable timers_cv_;
+  rclcpp::ConditionVariable timers_cv_;
   // Flag used as predicate by timers_cv_ that denotes one or more timers being added/removed
   bool timers_updated_ {false};
   // Indicates whether the timers thread is currently running or not
