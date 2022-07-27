@@ -41,6 +41,14 @@ void TimersManager::add_timer(rclcpp::TimerBase::SharedPtr timer)
     timers_updated_ = timers_updated_ || added;
   }
 
+  timer->set_on_reset_callback([this](){
+    {
+      std::unique_lock<std::mutex> lock(timers_mutex_);
+      timers_updated_ = true;
+    }
+    timers_cv_.notify_one();
+  });
+
   if (added) {
     // Notify that a timer has been added
     timers_cv_.notify_one();
@@ -258,6 +266,10 @@ void TimersManager::clear()
   {
     // Lock mutex and then clear all data structures
     std::unique_lock<std::mutex> lock(timers_mutex_);
+
+    TimersHeap locked_heap = weak_timers_heap_.validate_and_lock();
+    locked_heap.clear_callbacks();
+
     weak_timers_heap_.clear();
 
     timers_updated_ = true;
@@ -281,4 +293,5 @@ void TimersManager::remove_timer(TimerPtr timer)
     // Notify timers thread such that it can re-compute its timeout
     timers_cv_.notify_one();
   }
+  timer->clear_on_reset_callback();
 }
