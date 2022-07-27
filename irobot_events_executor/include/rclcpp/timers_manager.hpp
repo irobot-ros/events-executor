@@ -430,6 +430,13 @@ public:
       std::make_heap(owned_heap_.begin(), owned_heap_.end(), timer_greater);
     }
 
+    void clear_callbacks()
+    {
+      for (TimerPtr & t : owned_heap_) {
+        t->clear_on_reset_callback();
+      }
+    }
+
     /**
      * @brief Friend declaration to allow the `validate_and_lock()` function to access the
      * underlying heap container
