@@ -18,6 +18,14 @@ The extensibility of the `EventsExecutor` comes from the fact that this core com
 For example in this repository we also include an extension that uses a lock-free queue, based on this great [concurrent queue](https://github.com/cameron314/concurrentqueue) implementation. 
 Other extensions would allow to bound the queue or enforce deterministic execution constraints.
 
+## Known bugs and limitations
+
+The iRobot team is actively working to address these items.
+
+ - The executor is not notified when a ROS 2 timer is reset.
+ - Enabling Intra-Process Optimization in rclcpp can result in [a runtime exception](https://github.com/ros2/rclcpp/blob/rolling/rclcpp/include/rclcpp/experimental/buffers/ring_buffer_implementation.hpp#L90).
+ - The executor is broken with Fast-DDS in Humble. The following PR fixes the problem: https://github.com/ros2/rmw_fastrtps/pull/619
+
 ## Instructions
 
 This repository provides libraries that can be built/installed alongside a standard ROS 2 installation and give access to the `EventsExecutor` class and its related components.
@@ -35,17 +43,21 @@ To build and run the examples you can do the following:
 
 ```
 docker run -it osrf/ros:humble-desktop bash
-sudo apt-get update && sudo apt-get upgrade && sudo apt-get install ros-humble-test-msgs
+sudo apt-get update && sudo apt-get upgrade && sudo apt-get install ros-humble-test-msgs ros-humble-rmw-cyclonedds-cpp
 mkdir -p /root/ws/src
 cd /root/ws/src
 git clone https://github.com/irobot-ros/events-executor.git
 cd ..
 colcon build
 source install/setup.sh
+export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
 ros2 run events_executor_examples hello_events_executor
 ```
 
-## rclcpp PRs
+Note how we change the `RMW_IMPLEMENTATION` to CycloneDDS.
+In order to use Fast-DDS it's necessary to cherry-pick [this PR](https://github.com/ros2/rmw_fastrtps/pull/619) and re-build the `rmw_fastrtps` package.
+
+## Events Executor PRs
 
 List of Pull Requests that are introducing the `EventsExecutor` in the ROS 2 core repositories.
 
@@ -63,7 +75,3 @@ List of Pull Requests that are introducing the `EventsExecutor` in the ROS 2 cor
 
  - https://github.com/ros2/design/pull/305
  - https://github.com/ros2/rclcpp/pull/1891
-
-## Known bugs and limitations
-
- - The `EventsExecutor` is not notified when a ROS 2 timer is reset.
