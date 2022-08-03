@@ -75,3 +75,5 @@ List of Pull Requests that are introducing the `EventsExecutor` in the ROS 2 cor
 
  - https://github.com/ros2/design/pull/305
  - https://github.com/ros2/rclcpp/pull/1891
+ - https://github.com/ros2/rclcpp/pull/1979
+ - https://github.com/ros2/rcl/pull/995
