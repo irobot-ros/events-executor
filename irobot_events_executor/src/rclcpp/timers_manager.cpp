@@ -45,6 +45,8 @@ void TimersManager::add_timer(rclcpp::TimerBase::SharedPtr timer)
     {
       (void)arg;
       rclcpp::Lock lock(timers_mutex_);
+      std::cout << "timer reset papuuuu. Called "
+                << arg << " times." << std::endl;
       timers_updated_ = true;
     }
     timers_cv_.notify_one();
