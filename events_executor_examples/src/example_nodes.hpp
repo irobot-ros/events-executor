@@ -38,6 +38,14 @@ public:
     timer_ = this->create_wall_timer(500ms, timer_callback);
   }
 
+  void cancel_timer() {
+    timer_->cancel();
+  }
+
+  void reset_timer() {
+    timer_->reset();
+  }
+
 private:
   rclcpp::TimerBase::SharedPtr timer_;
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr publisher_;
