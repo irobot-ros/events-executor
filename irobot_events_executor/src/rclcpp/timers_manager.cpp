@@ -41,8 +41,9 @@ void TimersManager::add_timer(rclcpp::TimerBase::SharedPtr timer)
     timers_updated_ = timers_updated_ || added;
   }
 
-  timer->set_on_reset_callback([this](){
+  timer->set_on_reset_callback([this](size_t arg){
     {
+      (void)arg;
       std::unique_lock<std::mutex> lock(timers_mutex_);
       timers_updated_ = true;
     }
