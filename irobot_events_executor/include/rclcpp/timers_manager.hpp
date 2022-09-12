@@ -487,6 +487,8 @@ private:
   std::thread timers_thread_;
   // Protects access to timers
   rclcpp::RecursiveMutex timers_mutex_;
+  // Protects access to stop()
+  std::mutex stop_mutex_;
   // Notifies the timers thread whenever timers are added/removed
   rclcpp::ConditionVariable timers_cv_;
   // Flag used as predicate by timers_cv_ that denotes one or more timers being added/removed
