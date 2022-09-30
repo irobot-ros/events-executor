@@ -50,6 +50,11 @@ EventsExecutor::EventsExecutor(
   entities_collector_->add_waitable(executor_notifier_);
 }
 
+EventsExecutor::~EventsExecutor()
+{
+  spinning.store(false);
+};
+
 void
 EventsExecutor::spin()
 {
