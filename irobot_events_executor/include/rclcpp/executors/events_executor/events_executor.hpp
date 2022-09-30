@@ -62,9 +62,9 @@ public:
     bool execute_timers_separate_thread = false,
     const rclcpp::ExecutorOptions & options = rclcpp::ExecutorOptions());
 
-  /// Default destrcutor.
+  /// Default destructor.
   RCLCPP_PUBLIC
-  virtual ~EventsExecutor() = default;
+  virtual ~EventsExecutor();
 
   /// Events executor implementation of spin.
   /**
