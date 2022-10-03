@@ -389,7 +389,7 @@ std::function<void(size_t)>
 EventsExecutorEntitiesCollector::create_entity_callback(
   void * exec_entity_id, ExecutorEventType event_type)
 {
-  auto callback = [this, exec_entity_id, event_type](size_t num_events) {
+  std::function<void(size_t)> callback = [this, exec_entity_id, event_type](size_t num_events) {
       ExecutorEvent event = {exec_entity_id, -1, event_type, num_events};
       associated_executor_->events_queue_->enqueue(event);
     };
@@ -399,7 +399,7 @@ EventsExecutorEntitiesCollector::create_entity_callback(
 std::function<void(size_t, int)>
 EventsExecutorEntitiesCollector::create_waitable_callback(void * exec_entity_id)
 {
-  auto callback = [this, exec_entity_id](size_t num_events, int gen_entity_id) {
+  std::function<void(size_t, int)> callback = [this, exec_entity_id](size_t num_events, int gen_entity_id) {
       ExecutorEvent event =
       {exec_entity_id, gen_entity_id, ExecutorEventType::WAITABLE_EVENT, num_events};
       associated_executor_->events_queue_->enqueue(event);
