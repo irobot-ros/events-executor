@@ -12,9 +12,10 @@
 using rclcpp::executors::ExecutorEvent;
 using rclcpp::executors::ExecutorEventType;
 using rclcpp::executors::EventsExecutorEntitiesCollector;
+using rclcpp::executors::EventsExecutor;
 
 EventsExecutorEntitiesCollector::EventsExecutorEntitiesCollector(
-  rclcpp::executors::EventsExecutor * executor)
+  EventsExecutor * executor)
 {
   if (executor == nullptr) {
     throw std::runtime_error("Received nullptr executor in EventsExecutorEntitiesCollector.");
@@ -272,12 +273,15 @@ void
 EventsExecutorEntitiesCollector::set_guard_condition_callback(
   rclcpp::GuardCondition * guard_condition)
 {
-  auto gc_callback = [this](size_t num_events) {
+  EventsExecutor * executor = associated_executor_;
+  void * exec_entity_id = this;
+  auto gc_callback = [executor, exec_entity_id](size_t num_events) {
       // Override num events (we don't care more than a single event)
-      num_events = 1;
-      int gc_id = -1;
-      ExecutorEvent event = {this, gc_id, ExecutorEventType::WAITABLE_EVENT, num_events};
-      associated_executor_->events_queue_->enqueue(event);
+      (void)num_events;
+      static constexpr size_t single_event = 1;
+      static constexpr int gc_id = -1;
+      ExecutorEvent event = {exec_entity_id, gc_id, ExecutorEventType::WAITABLE_EVENT, single_event};
+      executor->events_queue_->enqueue(event);
     };
 
   guard_condition->set_on_trigger_callback(gc_callback);
@@ -389,9 +393,10 @@ std::function<void(size_t)>
 EventsExecutorEntitiesCollector::create_entity_callback(
   void * exec_entity_id, ExecutorEventType event_type)
 {
-  auto callback = [this, exec_entity_id, event_type](size_t num_events) {
+  EventsExecutor * executor = associated_executor_;
+  auto callback = [executor, exec_entity_id, event_type](size_t num_events) {
       ExecutorEvent event = {exec_entity_id, -1, event_type, num_events};
-      associated_executor_->events_queue_->enqueue(event);
+      executor->events_queue_->enqueue(event);
     };
   return callback;
 }
@@ -399,10 +404,11 @@ EventsExecutorEntitiesCollector::create_entity_callback(
 std::function<void(size_t, int)>
 EventsExecutorEntitiesCollector::create_waitable_callback(void * exec_entity_id)
 {
-  auto callback = [this, exec_entity_id](size_t num_events, int gen_entity_id) {
+  EventsExecutor * executor = associated_executor_;
+  auto callback = [executor, exec_entity_id](size_t num_events, int gen_entity_id) {
       ExecutorEvent event =
-      {exec_entity_id, gen_entity_id, ExecutorEventType::WAITABLE_EVENT, num_events};
-      associated_executor_->events_queue_->enqueue(event);
+        {exec_entity_id, gen_entity_id, ExecutorEventType::WAITABLE_EVENT, num_events};
+      executor->events_queue_->enqueue(event);
     };
   return callback;
 }

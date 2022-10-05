@@ -48,7 +48,7 @@ public:
 
   // Destructor
   RCLCPP_PUBLIC
-  ~EventsExecutorEntitiesCollector();
+  virtual ~EventsExecutorEntitiesCollector();
 
   // Initialize entities collector
   RCLCPP_PUBLIC
