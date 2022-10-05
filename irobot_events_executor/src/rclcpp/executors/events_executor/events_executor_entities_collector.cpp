@@ -394,7 +394,7 @@ EventsExecutorEntitiesCollector::create_entity_callback(
   std::function<void(size_t)> callback = [this, exec_entity_id, event_type](size_t num_events) {
       assert(this != nullptr);
       ExecutorEvent event = {exec_entity_id, -1, event_type, num_events};
-      associated_executor_->events_queue_->enqueue(event);
+      this->associated_executor_->events_queue_->enqueue(event);
     };
   return callback;
 }
