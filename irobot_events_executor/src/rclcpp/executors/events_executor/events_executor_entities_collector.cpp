@@ -180,6 +180,7 @@ EventsExecutorEntitiesCollector::set_callback_group_entities_callbacks(
   // Set callbacks for all other entity types
   group->find_subscription_ptrs_if(
     [this](const rclcpp::SubscriptionBase::SharedPtr & subscription) {
+      assert(this != nullptr);
       if (subscription) {
         weak_subscriptions_map_.emplace(subscription.get(), subscription);
 
@@ -389,6 +390,7 @@ std::function<void(size_t)>
 EventsExecutorEntitiesCollector::create_entity_callback(
   void * exec_entity_id, ExecutorEventType event_type)
 {
+  assert(this != nullptr);
   std::function<void(size_t)> callback = [this, exec_entity_id, event_type](size_t num_events) {
       assert(this != nullptr);
       ExecutorEvent event = {exec_entity_id, -1, event_type, num_events};
