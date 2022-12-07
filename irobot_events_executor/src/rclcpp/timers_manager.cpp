@@ -61,16 +61,7 @@ void TimersManager::stop()
 {
   // Lock stop() function to prevent race condition in destructor
   std::unique_lock<std::mutex> lock(stop_mutex_);
-
-  // Nothing to do if the timers thread is not running
-  // or if another thread already signaled to stop.
-  if (!running_.exchange(false)) {
-    // Join timers thread if it's running
-    if (timers_thread_.joinable()) {
-      timers_thread_.join();
-    }
-    return;
-  }
+  running_ = false;
 
   // Notify the timers manager thread to wake up
   {
