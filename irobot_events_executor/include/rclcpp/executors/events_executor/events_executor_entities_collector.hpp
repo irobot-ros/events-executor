@@ -152,16 +152,12 @@ protected:
     rclcpp::CallbackGroup::SharedPtr group) override;
 
   void
-  node_added_impl(
-    rclcpp::node_interfaces::NodeBaseInterface::SharedPtr node) override;
-
-  void
   callback_group_removed_impl(
     rclcpp::CallbackGroup::SharedPtr group) override;
 
   void
   node_removed_impl(
-    rclcpp::node_interfaces::NodeBaseInterface::SharedPtr node) override;
+    rclcpp::CallbackGroup::SharedPtr group_ptr) override;
 
 private:
   void
@@ -186,11 +182,6 @@ private:
   std::function<void(size_t, int)>
   create_waitable_callback(void * waitable_id);
 
-  typedef std::map<rclcpp::node_interfaces::NodeBaseInterface::WeakPtr,
-      const rclcpp::GuardCondition *,
-      std::owner_less<rclcpp::node_interfaces::NodeBaseInterface::WeakPtr>>
-    WeakNodesToGuardConditionsMap;
-  WeakNodesToGuardConditionsMap weak_nodes_to_guard_conditions_;
 
   // Mutex to protect vector of new nodes.
   std::recursive_mutex reentrant_mutex_;

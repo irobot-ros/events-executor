@@ -148,18 +148,13 @@ protected:
 
   virtual
   void
-  node_added_impl(
-    rclcpp::node_interfaces::NodeBaseInterface::SharedPtr node) = 0;
-
-  virtual
-  void
   callback_group_removed_impl(
     rclcpp::CallbackGroup::SharedPtr group) = 0;
 
   virtual
   void
   node_removed_impl(
-    rclcpp::node_interfaces::NodeBaseInterface::SharedPtr node) = 0;
+    rclcpp::CallbackGroup::SharedPtr group_ptr) = 0;
 
   /// Return true if the node belongs to the collector
   /**
@@ -180,6 +175,14 @@ protected:
    */
   void
   add_callback_groups_from_nodes_associated_to_executor();
+
+  typedef std::map<rclcpp::CallbackGroup::WeakPtr,
+      const rclcpp::GuardCondition *,
+      std::owner_less<rclcpp::CallbackGroup::WeakPtr>>
+    WeakCallbackGroupsToGuardConditionsMap;
+
+  /// maps callback groups to guard conditions
+  WeakCallbackGroupsToGuardConditionsMap weak_groups_to_guard_conditions_;
 
   // maps callback groups to nodes.
   WeakCallbackGroupsToNodesMap weak_groups_associated_with_executor_to_nodes_;
