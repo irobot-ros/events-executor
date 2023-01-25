@@ -53,7 +53,7 @@ EventsExecutor::EventsExecutor(
 EventsExecutor::~EventsExecutor()
 {
   spinning.store(false);
-};
+}
 
 void
 EventsExecutor::spin()
