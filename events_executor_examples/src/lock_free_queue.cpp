@@ -13,7 +13,7 @@ int main(int argc, char * argv[])
 {
   rclcpp::init(argc, argv);
 
-  auto publisher_node = std::make_shared<MinimalPublisher>();
+  auto publisher_node = std::make_shared<MinimalPublisher>("A");
   auto subscriber_node = std::make_shared<MinimalSubscriber>();
 
   auto lock_free_queue = std::make_unique<LockFreeEventsQueue>();

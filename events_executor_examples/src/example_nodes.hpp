@@ -24,8 +24,8 @@ using namespace std::chrono_literals;
 class MinimalPublisher : public rclcpp::Node
 {
 public:
-  MinimalPublisher()
-  : Node("minimal_publisher"), count_(0)
+  MinimalPublisher(const std::string & node_name)
+  : Node(node_name), count_(0)
   {
     publisher_ = this->create_publisher<std_msgs::msg::String>("topic", rclcpp::SensorDataQoS());
     auto timer_callback =
@@ -35,7 +35,7 @@ public:
         RCLCPP_INFO(this->get_logger(), "Publishing: '%s'", message.data.c_str());
         this->publisher_->publish(message);
       };
-    timer_ = this->create_wall_timer(500ms, timer_callback);
+    timer_ = this->create_wall_timer(1ms, timer_callback);
   }
 
   void cancel_timer() {
