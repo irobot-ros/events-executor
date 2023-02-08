@@ -86,15 +86,23 @@ EntitiesCollectorBase::add_callback_group(
   bool was_inserted = insert_info.second;
   if (!was_inserted) {
     throw std::runtime_error("Callback group was already added to executor.");
-  } else {
-    callback_group_added_impl(group_ptr);
   }
 
   if (is_new_node) {
     node_added_impl(node_ptr);
-    return true;
   }
-  return false;
+
+  if (node_ptr->get_context()->is_valid()) {
+    auto callback_group_guard_condition =
+      group_ptr->get_notify_guard_condition(node_ptr->get_context());
+
+    rclcpp::CallbackGroup::WeakPtr weak_group_ptr = group_ptr;
+    weak_groups_to_guard_conditions_[weak_group_ptr] = callback_group_guard_condition.get();
+  }
+
+  callback_group_added_impl(group_ptr);
+
+  return is_new_node;
 }
 
 bool
@@ -133,13 +141,17 @@ EntitiesCollectorBase::remove_callback_group_from_map(
     throw std::runtime_error("Callback group needs to be associated with executor.");
   }
   // If the node was matched and removed, interrupt waiting.
+  bool node_removed = false;
   if (!has_node(node_ptr, weak_groups_associated_with_executor_to_nodes_) &&
     !has_node(node_ptr, weak_groups_to_nodes_associated_with_executor_))
   {
     node_removed_impl(node_ptr);
-    return true;
+    node_removed = true;
   }
-  return false;
+
+  weak_groups_to_guard_conditions_.erase(weak_group_ptr);
+
+  return node_removed;
 }
 
 bool
