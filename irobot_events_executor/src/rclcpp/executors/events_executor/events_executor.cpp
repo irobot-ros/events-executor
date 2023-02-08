@@ -222,8 +222,8 @@ EventsExecutor::execute_event(const ExecutorEvent & event)
         auto client = entities_collector_->get_client(event.exec_entity_id);
 
         if (client) {
-          std::cout << "Execute CLIENT_EVENT: " << client->get_service_name() << std::endl;
           for (size_t i = 0; i < event.num_events; i++) {
+            std::cout << "Execute CLIENT_EVENT: " << i <<  " - " << client->get_service_name() << std::endl;
             execute_client(client);
           }
         } else {
@@ -248,8 +248,8 @@ EventsExecutor::execute_event(const ExecutorEvent & event)
 
 
         if (service) {
-          std::cout << "Execute SERVICE_EVENT: " << service->get_service_name();
           for (size_t i = 0; i < event.num_events; i++) {
+            std::cout << "Execute SERVICE_EVENT: " << i << " - " << service->get_service_name() << std::endl;
             execute_service(service);
           }
         } else {
