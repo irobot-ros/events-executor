@@ -222,9 +222,12 @@ EventsExecutor::execute_event(const ExecutorEvent & event)
         auto client = entities_collector_->get_client(event.exec_entity_id);
 
         if (client) {
+          std::cout << "Execute CLIENT_EVENT: " << client->get_service_name() << std::endl;
           for (size_t i = 0; i < event.num_events; i++) {
             execute_client(client);
           }
+        } else {
+          std::cout << "CLIENT_EVENT: Dissapeared client. " << std::endl;
         }
         break;
       }
@@ -243,10 +246,14 @@ EventsExecutor::execute_event(const ExecutorEvent & event)
       {
         auto service = entities_collector_->get_service(event.exec_entity_id);
 
+
         if (service) {
+          std::cout << "Execute SERVICE_EVENT: " << service->get_service_name();
           for (size_t i = 0; i < event.num_events; i++) {
             execute_service(service);
           }
+        } else {
+          std::cout << "SERVICE_EVENT: Dissapeared service. " << std::endl;
         }
         break;
       }
