@@ -55,11 +55,22 @@ EventsExecutorEntitiesCollector::~EventsExecutorEntitiesCollector()
     }
   }
 
+    // Unset callback group notify guard condition executor callback
+  for (const auto & pair : weak_groups_to_guard_conditions_) {
+    auto group = pair.first.lock();
+    if (group) {
+      auto & group_gc = pair.second;
+      unset_guard_condition_callback(group_gc);
+    }
+  }
+
   weak_clients_map_.clear();
   weak_services_map_.clear();
   weak_waitables_map_.clear();
   weak_subscriptions_map_.clear();
   weak_nodes_to_guard_conditions_.clear();
+  weak_groups_to_guard_conditions_.clear();
+
 }
 
 void
@@ -107,6 +118,15 @@ EventsExecutorEntitiesCollector::callback_group_added_impl(
   rclcpp::CallbackGroup::SharedPtr group)
 {
   std::lock_guard<std::recursive_mutex> lock(reentrant_mutex_);
+
+  rclcpp::CallbackGroup::WeakPtr weak_group_ptr = group;
+
+  auto iter = weak_groups_to_guard_conditions_.find(weak_group_ptr);
+  if (iter != weak_groups_to_guard_conditions_.end()) {
+    // Set an event callback for the node's notify guard condition, so if new entities are added
+    // or removed to this node we will receive an event.
+    set_guard_condition_callback(iter->second);
+  }
   // For all entities in the callback group, set their event callback
   set_callback_group_entities_callbacks(group);
 }
@@ -224,6 +244,12 @@ void
 EventsExecutorEntitiesCollector::unset_callback_group_entities_callbacks(
   rclcpp::CallbackGroup::SharedPtr group)
 {
+  auto iter = weak_groups_to_guard_conditions_.find(group);
+
+  if (iter != weak_groups_to_guard_conditions_.end()) {
+    unset_guard_condition_callback(iter->second);
+  }
+
   // Timers are handled by the timers manager
   group->find_timer_ptrs_if(
     [this](const rclcpp::TimerBase::SharedPtr & timer) {
