@@ -26,13 +26,6 @@ ament_target_dependencies(irobot_lock_free_events_queue INTERFACE
   "rclcpp"
 )
 
-install(TARGETS
-  irobot_lock_free_events_queue
-  ARCHIVE DESTINATION lib
-  LIBRARY DESTINATION lib
-  RUNTIME DESTINATION bin
-)
-
 install(DIRECTORY include/
   DESTINATION include/${PROJECT_NAME}
 )
