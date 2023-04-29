@@ -1,5 +1,8 @@
 # events-executor
 
+## The events-executor is now merged in rclcpp: https://github.com/ros2/rclcpp/pull/2155 and this repository is now deprecated
+
+
 This repository contains a C++ implementation of the `EventsExecutor` designed by iRobot.
 It is a new type of executor compatible with the ROS 2 `rclcpp` library.
 
