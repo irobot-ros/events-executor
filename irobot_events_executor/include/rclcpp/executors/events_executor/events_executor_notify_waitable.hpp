@@ -41,9 +41,9 @@ public:
 
   RCLCPP_PUBLIC
   void
-  add_guard_condition(rclcpp::GuardCondition * guard_condition)
+  add_guard_condition(rclcpp::GuardCondition::SharedPtr guard_condition)
   {
-    notify_guard_conditions_.push_back(guard_condition);
+    notify_guard_conditions_.push_back(guard_condition.get());
   }
 
   RCLCPP_PUBLIC

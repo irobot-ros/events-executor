@@ -44,8 +44,8 @@ EventsExecutor::EventsExecutor(
   // Setup the executor notifier to wake up the executor when some guard conditions are tiggered.
   // The added guard conditions are guaranteed to not go out of scope before the executor itself.
   executor_notifier_ = std::make_shared<EventsExecutorNotifyWaitable>();
-  executor_notifier_->add_guard_condition(shutdown_guard_condition_.get());
-  executor_notifier_->add_guard_condition(&interrupt_guard_condition_);
+  executor_notifier_->add_guard_condition(shutdown_guard_condition_);
+  executor_notifier_->add_guard_condition(interrupt_guard_condition_);
 
   entities_collector_->add_waitable(executor_notifier_);
 }
