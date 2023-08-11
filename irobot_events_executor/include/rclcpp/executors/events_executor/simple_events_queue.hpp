@@ -3,7 +3,6 @@
 #ifndef RCLCPP__EXECUTORS__EVENTS_EXECUTOR__SIMPLE_EVENTS_QUEUE_HPP_
 #define RCLCPP__EXECUTORS__EVENTS_EXECUTOR__SIMPLE_EVENTS_QUEUE_HPP_
 
-#include <atomic>
 #include <condition_variable>
 #include <mutex>
 #include <queue>
@@ -26,19 +25,7 @@ class SimpleEventsQueue : public EventsQueue
 {
 public:
   RCLCPP_PUBLIC
-  ~SimpleEventsQueue() override
-  {
-    std::cout << "Destroy  ~SimpleEventsQueue() " << std::endl;
-    {
-      std::unique_lock<std::mutex> lock(mutex_);
-      should_exit_ = true;
-      while(!event_queue_.empty()) {
-        event_queue_.pop();
-      }
-    }
-    events_queue_cv_.notify_one();
-    std::cout << "Destroy  ~SimpleEventsQueue(DESATROEOIJED) " << event_queue_.empty() << std::endl;
-  }
+  ~SimpleEventsQueue() override = default;
 
   /**
    * @brief enqueue event into the queue
@@ -76,16 +63,10 @@ public:
     // Initialize to true because it's only needed if we have a valid timeout
     bool has_data = true;
     if (timeout != std::chrono::nanoseconds::max()) {
-      std::cout << "events_queue_cv_.wait_for" << std::endl;
       has_data =
         events_queue_cv_.wait_for(lock, timeout, [this]() {return !event_queue_.empty();});
-      std::cout << "events_queue_cv_.wait_for -> DONE" << std::endl;
     } else {
-      std::cout << "events_queue_cv_.wait" << std::endl;
-      events_queue_cv_.wait(lock, [this]() {
-        return (!event_queue_.empty()) || should_exit_;
-      });
-      std::cout << "events_queue_cv_.wait -> DONE" << std::endl;
+      events_queue_cv_.wait(lock, [this]() {return !event_queue_.empty();});
     }
 
     if (has_data) {
@@ -130,7 +111,6 @@ private:
   mutable std::mutex mutex_;
   // Variable used to notify when an event is added to the queue
   std::condition_variable events_queue_cv_;
-  std::atomic<bool> should_exit_{false};
 };
 
 }  // namespace executors
