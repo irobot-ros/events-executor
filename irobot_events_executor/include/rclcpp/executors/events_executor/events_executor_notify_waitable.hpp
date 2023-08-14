@@ -29,7 +29,14 @@ public:
 
   // Destructor
   RCLCPP_PUBLIC
-  virtual ~EventsExecutorNotifyWaitable() = default;
+  virtual ~EventsExecutorNotifyWaitable()
+  {
+    std::unique_lock<std::mutex> lock(mutex_);
+
+    for (auto & gc : notify_guard_conditions_) {
+      gc->set_on_trigger_callback(nullptr);
+    }
+  }
 
   // The function is a no-op, since we only care of waking up the executor
   RCLCPP_PUBLIC
@@ -43,6 +50,8 @@ public:
   void
   add_guard_condition(rclcpp::GuardCondition::SharedPtr guard_condition)
   {
+    std::unique_lock<std::mutex> lock(mutex_);
+
     notify_guard_conditions_.push_back(guard_condition.get());
   }
 
@@ -56,6 +65,8 @@ public:
     auto gc_callback = [callback](size_t count) {
         callback(count, 0);
       };
+
+    std::unique_lock<std::mutex> lock(mutex_);
 
     for (auto gc : notify_guard_conditions_) {
       gc->set_on_trigger_callback(gc_callback);
@@ -79,6 +90,8 @@ public:
   }
 
 private:
+  // Mutex to protect notify_guard_conditions_
+  std::mutex mutex_;
   std::list<rclcpp::GuardCondition *> notify_guard_conditions_;
 };
 
