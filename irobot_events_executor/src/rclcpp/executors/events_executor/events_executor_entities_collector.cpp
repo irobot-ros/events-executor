@@ -65,6 +65,14 @@ EventsExecutorEntitiesCollector::~EventsExecutorEntitiesCollector()
     }
   }
 
+  for (const auto & pair : weak_nodes_to_guard_conditions_) {
+    auto node = pair.first.lock();
+    if (node) {
+      auto & node_gc = pair.second;
+      unset_guard_condition_callback(node_gc);
+    }
+  }
+
   weak_clients_map_.clear();
   weak_services_map_.clear();
   weak_waitables_map_.clear();
