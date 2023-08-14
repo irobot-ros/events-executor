@@ -25,7 +25,14 @@ class SimpleEventsQueue : public EventsQueue
 {
 public:
   RCLCPP_PUBLIC
-  ~SimpleEventsQueue() override = default;
+  ~SimpleEventsQueue() override
+  {
+    {
+      std::unique_lock<std::mutex> lock(mutex_);
+      should_exit_ = true;
+    }
+    events_queue_cv_.notify_one();
+  }
 
   /**
    * @brief enqueue event into the queue
@@ -66,7 +73,7 @@ public:
       has_data =
         events_queue_cv_.wait_for(lock, timeout, [this]() {return !event_queue_.empty();});
     } else {
-      events_queue_cv_.wait(lock, [this]() {return !event_queue_.empty();});
+      events_queue_cv_.wait(lock, [this]() {return !event_queue_.empty() || should_exit_;});
     }
 
     if (has_data) {
@@ -111,6 +118,8 @@ private:
   mutable std::mutex mutex_;
   // Variable used to notify when an event is added to the queue
   std::condition_variable events_queue_cv_;
+  // Variable used to exit the CV wait when queue is destroyed
+  bool should_exit_{false};
 };
 
 }  // namespace executors
