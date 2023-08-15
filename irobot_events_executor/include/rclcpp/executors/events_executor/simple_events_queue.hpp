@@ -76,7 +76,7 @@ public:
       events_queue_cv_.wait(lock, [this]() {return !event_queue_.empty() || should_exit_;});
     }
 
-    if (has_data) {
+    if (has_data && !should_exit_) {
       event = event_queue_.front();
       event_queue_.pop();
       return true;
