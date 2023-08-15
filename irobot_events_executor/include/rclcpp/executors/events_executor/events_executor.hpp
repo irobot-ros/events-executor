@@ -213,6 +213,7 @@ private:
 
   // Timers manager
   std::shared_ptr<TimersManager> timers_manager_;
+  std::atomic<bool> spin_has_finished_{false};
 };
 
 }  // namespace executors

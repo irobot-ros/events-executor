@@ -53,7 +53,13 @@ EventsExecutor::EventsExecutor(
 EventsExecutor::~EventsExecutor()
 {
   spinning.store(false);
-};
+
+  // Reset the queue, which will exit spin, if is spinning.
+  events_queue_.reset();
+  while (!spin_has_finished_) {
+    std::this_thread::sleep_for(100ms);
+  }
+}
 
 void
 EventsExecutor::spin()
@@ -64,6 +70,7 @@ EventsExecutor::spin()
   RCPPUTILS_SCOPE_EXIT(this->spinning.store(false); );
 
   timers_manager_->start();
+  RCPPUTILS_SCOPE_EXIT(timers_manager_->stop(); );
 
   while (rclcpp::ok(context_) && spinning.load()) {
     // Wait until we get an event
@@ -73,6 +80,8 @@ EventsExecutor::spin()
       this->execute_event(event);
     }
   }
+
+  spin_has_finished_ = true;
 }
 
 void
