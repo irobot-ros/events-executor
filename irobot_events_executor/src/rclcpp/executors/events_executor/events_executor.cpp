@@ -52,13 +52,13 @@ EventsExecutor::EventsExecutor(
 
 EventsExecutor::~EventsExecutor()
 {
-  auto executor_is_spinning = spinning.load();
+  // Set 'spinning' to false and get previous value
+  auto executor_was_spinning = spinning.exchange(false);
 
-  if (executor_is_spinning) {
-    // Set spinning to false and trigger the shutdown guard condition.
+  if (executor_was_spinning) {
+    // Trigger the shutdown guard condition.
     // This way, the 'events_queue_' will wake up since a new event has arrived.
-    // Then since 'spinning' is false, the spin loop will exit.
-    spinning.store(false);
+    // Then since 'spinning' is now false, the spin loop will exit.
     shutdown_guard_condition_->trigger();
 
     // The timers manager thread is stopped at the end of spin().
