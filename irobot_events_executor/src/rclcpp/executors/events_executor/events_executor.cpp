@@ -52,12 +52,21 @@ EventsExecutor::EventsExecutor(
 
 EventsExecutor::~EventsExecutor()
 {
-  spinning.store(false);
+  auto executor_is_spinning = spinning.load();
 
-  shutdown_guard_condition_->trigger();
+  if (executor_is_spinning) {
+    // Set spinning to false and trigger the shutdown guard condition.
+    // This way, the 'events_queue_' will wake up since a new event has arrived.
+    // Then since 'spinning' is false, the spin loop will exit.
+    spinning.store(false);
+    shutdown_guard_condition_->trigger();
 
-  while (!spin_has_finished_) {
-    std::this_thread::sleep_for(100ms);
+    // The timers manager thread is stopped at the end of spin().
+    // We have to wait for timers manager thread to exit, otherwise
+    // the 'timers_manager_' will be destroyed while still being used on spin().
+    while (timers_manager_->is_running()) {
+      std::this_thread::sleep_for(1ms);
+    }
   }
 }
 
@@ -72,8 +81,6 @@ EventsExecutor::spin()
   timers_manager_->start();
   RCPPUTILS_SCOPE_EXIT(timers_manager_->stop(); );
 
-  spin_has_finished_ = false;
-
   while (rclcpp::ok(context_) && spinning.load()) {
     // Wait until we get an event
     ExecutorEvent event;
@@ -82,8 +89,6 @@ EventsExecutor::spin()
       this->execute_event(event);
     }
   }
-
-  spin_has_finished_ = true;
 }
 
 void

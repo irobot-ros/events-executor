@@ -282,3 +282,8 @@ void TimersManager::remove_timer(TimerPtr timer)
     timers_cv_.notify_one();
   }
 }
+
+bool TimersManager::is_running()
+{
+  return running_;
+}
