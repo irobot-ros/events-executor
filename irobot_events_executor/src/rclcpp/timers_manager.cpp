@@ -295,3 +295,8 @@ void TimersManager::remove_timer(TimerPtr timer)
   }
   timer->clear_on_reset_callback();
 }
+
+bool TimersManager::is_running()
+{
+  return running_;
+}
