@@ -93,16 +93,9 @@ public:
   void clear();
 
   /**
-   * @brief Starts a thread that takes care of executing the timers stored in this object.
-   * Function will throw an error if the timers thread was already running.
+   * @brief Signal to stop the timers execution
    */
-  void start();
-
-  /**
-   * @brief Stops the timers thread.
-   * Will do nothing if the timer thread was not running.
-   */
-  void stop();
+  void notify_stop();
 
   /**
    * @brief Executes all the timers currently ready when the function was invoked.
@@ -150,10 +143,11 @@ public:
   std::chrono::nanoseconds get_head_timeout();
 
   /**
-   * @brief Function to check if the timers thread is running
-   * @return true if timers thread is running
+   * @brief Implements a loop that keeps executing ready timers.
+   * This function is intended to run in its own thread.
+   * Call notify_stop() to exit the loop
    */
-  bool is_running();
+  void run_timers();
 
 private:
   RCLCPP_DISABLE_COPY(TimersManager)
@@ -470,12 +464,6 @@ private:
   };
 
   /**
-   * @brief Implements a loop that keeps executing ready timers.
-   * This function is executed in the timers thread.
-   */
-  void run_timers();
-
-  /**
    * @brief Get the amount of time before the next timer triggers.
    * This function is not thread safe, acquire a mutex before calling it.
    *
@@ -496,8 +484,6 @@ private:
   // Callback to be called when timer is ready
   std::function<void(void *)> on_ready_callback_ = nullptr;
 
-  // Thread used to run the timers execution task
-  std::thread timers_thread_;
   // Protects access to timers
   rclcpp::RecursiveMutex timers_mutex_;
   // Protects access to stop()
@@ -512,6 +498,8 @@ private:
   std::shared_ptr<rclcpp::Context> context_;
   // Timers heap storage with weak ownership
   WeakTimersHeap weak_timers_heap_;
+  // Indicates if we finished runnint timers
+  std::atomic<bool> run_has_finished_{false};
 };
 
 }  // namespace rclcpp

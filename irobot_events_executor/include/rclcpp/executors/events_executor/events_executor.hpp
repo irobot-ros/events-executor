@@ -213,6 +213,12 @@ private:
 
   // Timers manager
   std::shared_ptr<TimersManager> timers_manager_;
+
+  // Indicates if we finished spinning
+  std::atomic<bool> spin_has_finished_{false};
+
+  // Thread used to run the timers execution task
+  std::thread timers_thread_;
 };
 
 }  // namespace executors

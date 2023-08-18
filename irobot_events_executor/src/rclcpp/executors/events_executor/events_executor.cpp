@@ -60,13 +60,18 @@ EventsExecutor::~EventsExecutor()
     // This way, the 'events_queue_' will wake up since a new event has arrived.
     // Then since 'spinning' is now false, the spin loop will exit.
     shutdown_guard_condition_->trigger();
+  }
 
-    // The timers manager thread is stopped at the end of spin().
-    // We have to wait for timers manager thread to exit, otherwise
-    // the 'timers_manager_' will be destroyed while still being used on spin().
-    while (timers_manager_->is_running()) {
-      std::this_thread::sleep_for(1ms);
-    }
+  // Notify the timers manager to exit execution of timers
+  timers_manager_->notify_stop();
+
+  // We need to wait for spin() to finish, otherwise we'll destroy objects
+  // used in it.
+  // If 'spin_has_finished_'  is true, it means both the timers thread
+  // and spin() have finished, so we're safe to destroy the EventsExecutor
+  // members and exit safely.
+  while (!spin_has_finished_) {
+    std::this_thread::sleep_for(1ms);
   }
 }
 
@@ -78,8 +83,18 @@ EventsExecutor::spin()
   }
   RCPPUTILS_SCOPE_EXIT(this->spinning.store(false); );
 
-  timers_manager_->start();
-  RCPPUTILS_SCOPE_EXIT(timers_manager_->stop(); );
+  spin_has_finished_.store(false);
+
+  timers_thread_ = std::thread([this](){ timers_manager_->run_timers(); });
+
+  RCPPUTILS_SCOPE_EXIT(
+      timers_manager_->notify_stop();
+
+      if (timers_thread_.joinable()) {
+        timers_thread_.join();
+      }
+      spin_has_finished_ = true;
+  );
 
   while (rclcpp::ok(context_) && spinning.load()) {
     // Wait until we get an event

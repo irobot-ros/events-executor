@@ -9,6 +9,8 @@
 
 #include "rclcpp/timers_manager.hpp"
 
+using namespace std::chrono_literals;
+
 using rclcpp::TimersManager;
 
 TimersManager::TimersManager(
@@ -24,8 +26,14 @@ TimersManager::~TimersManager()
   // Remove all timers
   this->clear();
 
-  // Make sure timers thread is stopped before destroying this object
-  this->stop();
+  // Make sure timers execution is stopped before destroying this object
+  this->notify_stop();
+
+  // We need to wait for run_timers() to finish, otherwise we'll destroy objects
+  // used in it.
+  while (!run_has_finished_) {
+    std::this_thread::sleep_for(1ms);
+  }
 }
 
 void TimersManager::add_timer(rclcpp::TimerBase::SharedPtr timer)
@@ -56,17 +64,7 @@ void TimersManager::add_timer(rclcpp::TimerBase::SharedPtr timer)
   }
 }
 
-void TimersManager::start()
-{
-  // Make sure that the thread is not already running
-  if (running_.exchange(true)) {
-    throw std::runtime_error("TimersManager::start() can't start timers thread as already running");
-  }
-
-  timers_thread_ = std::thread(&TimersManager::run_timers, this);
-}
-
-void TimersManager::stop()
+void TimersManager::notify_stop()
 {
   // Lock stop() function to prevent race condition in destructor
   rclcpp::Lock lock(stop_mutex_);
@@ -78,11 +76,6 @@ void TimersManager::stop()
     timers_updated_ = true;
   }
   timers_cv_.notify_one();
-
-  // Join timers thread if it's running
-  if (timers_thread_.joinable()) {
-    timers_thread_.join();
-  }
 }
 
 std::chrono::nanoseconds TimersManager::get_head_timeout()
@@ -233,6 +226,7 @@ void TimersManager::execute_ready_timers_unsafe()
 
 void TimersManager::run_timers()
 {
+  run_has_finished_ = false;
   while (rclcpp::ok(context_) && running_) {
     // Lock mutex
     rclcpp::Lock lock(timers_mutex_);
@@ -263,6 +257,7 @@ void TimersManager::run_timers()
   // Make sure the running flag is set to false when we exit from this function
   // to allow restarting the timers thread.
   running_ = false;
+  run_has_finished_ = true;
 }
 
 void TimersManager::clear()
@@ -294,9 +289,4 @@ void TimersManager::remove_timer(TimerPtr timer)
     timers_cv_.notify_one();
   }
   timer->clear_on_reset_callback();
-}
-
-bool TimersManager::is_running()
-{
-  return running_;
 }
