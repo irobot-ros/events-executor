@@ -29,7 +29,12 @@ public:
 
   // Destructor
   RCLCPP_PUBLIC
-  virtual ~EventsExecutorNotifyWaitable() = default;
+  virtual ~EventsExecutorNotifyWaitable()
+  {
+    for (auto & gc : notify_guard_conditions_) {
+      gc->set_on_trigger_callback(nullptr);
+    }
+  }
 
   // The function is a no-op, since we only care of waking up the executor
   RCLCPP_PUBLIC
