@@ -3,6 +3,7 @@
 #include <memory>
 #include <queue>
 #include <string>
+#include <iostream>
 #include <utility>
 #include <vector>
 
@@ -53,6 +54,7 @@ EventsExecutor::EventsExecutor(
 EventsExecutor::~EventsExecutor()
 {
   spinning.store(false);
+  std::cout << "~EventsExecutor: " << this << std::endl;
 };
 
 void
