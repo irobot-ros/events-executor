@@ -149,12 +149,6 @@ public:
    */
   std::chrono::nanoseconds get_head_timeout();
 
-  /**
-   * @brief Function to check if the timers thread is running
-   * @return true if timers thread is running
-   */
-  bool is_running();
-
 private:
   RCLCPP_DISABLE_COPY(TimersManager)
 
