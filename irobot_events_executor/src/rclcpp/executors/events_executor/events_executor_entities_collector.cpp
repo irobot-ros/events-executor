@@ -8,6 +8,8 @@
 #include <utility>
 #include <vector>
 
+#include <sstream>
+
 #include "rclcpp/executors/events_executor/events_executor.hpp"
 
 using rclcpp::executors::ExecutorEvent;
@@ -212,7 +214,7 @@ EventsExecutorEntitiesCollector::set_callback_group_entities_callbacks(
         weak_subscriptions_map_.emplace(subscription.get(), subscription);
 
         subscription->set_on_new_message_callback(
-          create_entity_callback(subscription.get(), ExecutorEventType::SUBSCRIPTION_EVENT));
+          create_subscription_callback(subscription.get(), ExecutorEventType::SUBSCRIPTION_EVENT));
       }
       return false;
     });
@@ -271,6 +273,7 @@ EventsExecutorEntitiesCollector::unset_callback_group_entities_callbacks(
   group->find_subscription_ptrs_if(
     [this](const rclcpp::SubscriptionBase::SharedPtr & subscription) {
       if (subscription) {
+        std::cout << "Unset cb to sub: " << subscription.get() << std::endl;
         subscription->clear_on_new_message_callback();
         weak_subscriptions_map_.erase(subscription.get());
       }
@@ -426,7 +429,26 @@ EventsExecutorEntitiesCollector::create_entity_callback(
   std::function<void(size_t)>
   callback = [this, exec_entity_id, event_type](size_t num_events) {
       ExecutorEvent event = {exec_entity_id, -1, event_type, num_events};
-      std::cout << "associated_executor_->events_queue_->enqueue(event);" << std::endl;
+      associated_executor_->events_queue_->enqueue(event);
+    };
+  return callback;
+}
+
+std::function<void(size_t)>
+EventsExecutorEntitiesCollector::create_subscription_callback(
+  void * exec_entity_id, ExecutorEventType event_type)
+{
+  using namespace std;
+  ostringstream get_the_address;
+  get_the_address << associated_executor_;
+  std::string address =  get_the_address.str();
+
+  std::cout << "Set cb to sub: " << exec_entity_id << " - X: " << address << std::endl;
+
+  std::function<void(size_t)>
+  callback = [this, exec_entity_id, event_type, address](size_t num_events) {
+      ExecutorEvent event = {exec_entity_id, -1, event_type, num_events};
+      std::cout << "msg to: " <<  exec_entity_id << " - X: " << address << std::endl;
       associated_executor_->events_queue_->enqueue(event);
     };
   return callback;
