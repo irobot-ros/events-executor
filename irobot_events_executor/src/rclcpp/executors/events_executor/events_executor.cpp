@@ -159,9 +159,11 @@ EventsExecutor::spin_once_impl(std::chrono::nanoseconds timeout)
   }
 
   // Select the smallest between input timeout and timer timeout
+  bool is_timer_timeout = false;
   auto next_timer_timeout = timers_manager_->get_head_timeout();
   if (next_timer_timeout < timeout) {
     timeout = next_timer_timeout;
+    is_timer_timeout = true;
   }
 
   ExecutorEvent event;
@@ -171,7 +173,7 @@ EventsExecutor::spin_once_impl(std::chrono::nanoseconds timeout)
   // arrived before any of the timers expired.
   if (has_event) {
     this->execute_event(event);
-  } else {
+  } else if (is_timer_timeout) {
     timers_manager_->execute_head_timer();
   }
 }
