@@ -183,6 +183,8 @@ private:
   std::function<void(size_t)>
   create_entity_callback(void * exec_entity_id, ExecutorEventType type);
 
+  void log_event(ExecutorEvent ev);
+
   std::function<void(size_t, int)>
   create_waitable_callback(void * waitable_id);
 

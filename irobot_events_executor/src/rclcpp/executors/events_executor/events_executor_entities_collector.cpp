@@ -418,6 +418,24 @@ EventsExecutorEntitiesCollector::add_waitable(rclcpp::Waitable::SharedPtr waitab
     create_waitable_callback(waitable.get()));
 }
 
+void
+EventsExecutorEntitiesCollector::log_event(ExecutorEvent ev)
+{
+  switch (ev.type)
+  {
+    case ExecutorEventType::SUBSCRIPTION_EVENT:
+      break;
+    case ExecutorEventType::CLIENT_EVENT:
+      std::cout << "CLIENT_EVENT: " << ev.exec_entity_id << std::endl; break;
+    case ExecutorEventType::SERVICE_EVENT:
+      std::cout << "SERVICE_EVENT: " << ev.exec_entity_id << std::endl; break;
+    case ExecutorEventType::TIMER_EVENT:
+      std::cout << "TIMER_EVENT: " << ev.exec_entity_id << std::endl; break;
+    case ExecutorEventType::WAITABLE_EVENT:
+      std::cout << "WAITABLE_EVENT: " << ev.exec_entity_id << std::endl; break;
+  }
+}
+
 std::function<void(size_t)>
 EventsExecutorEntitiesCollector::create_entity_callback(
   void * exec_entity_id, ExecutorEventType event_type)
@@ -425,6 +443,7 @@ EventsExecutorEntitiesCollector::create_entity_callback(
   std::function<void(size_t)>
   callback = [this, exec_entity_id, event_type](size_t num_events) {
       ExecutorEvent event = {exec_entity_id, -1, event_type, num_events};
+      log_event(event);
       associated_executor_->events_queue_->enqueue(event);
     };
   return callback;
