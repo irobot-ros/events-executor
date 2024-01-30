@@ -97,6 +97,13 @@ EventsExecutorEntitiesCollector::execute(std::shared_ptr<void> & data)
 
   std::lock_guard<std::recursive_mutex> lock(reentrant_mutex_);
 
+  weak_clients_map_.clear();
+  weak_services_map_.clear();
+  weak_waitables_map_.clear();
+  weak_subscriptions_map_.clear();
+  weak_nodes_to_guard_conditions_.clear();
+  weak_groups_to_guard_conditions_.clear();
+
   timers_manager_->clear();
 
   // If a registered node has a new callback group, register the group.
@@ -238,10 +245,7 @@ EventsExecutorEntitiesCollector::set_callback_group_entities_callbacks(
   group->find_waitable_ptrs_if(
     [this](const rclcpp::Waitable::SharedPtr & waitable) {
       if (waitable) {
-        weak_waitables_map_.emplace(waitable.get(), waitable);
-
-        waitable->set_on_ready_callback(
-          create_waitable_callback(waitable.get()));
+        add_waitable(waitable);
       }
       return false;
     });
