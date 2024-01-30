@@ -266,6 +266,11 @@ EventsExecutor::execute_event(const ExecutorEvent & event)
             auto data = waitable->take_data_by_entity_id(event.gen_entity_id);
             waitable->execute(data);
           }
+          if (!event.num_events) {
+            std::cout << "No events!! exec_entity_id: " << event.exec_entity_id  << " - gen_entity_id: " << event.gen_entity_id << " - ex: " << this << std::endl;
+          }
+        } else {
+          std::cout << "No waitable!! exec_entity_id: " << event.exec_entity_id  << " - gen_entity_id: " << event.gen_entity_id << " - ex: " << this << std::endl;
         }
         break;
       }

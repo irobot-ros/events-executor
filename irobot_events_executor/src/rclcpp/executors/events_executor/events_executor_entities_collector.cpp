@@ -403,6 +403,7 @@ EventsExecutorEntitiesCollector::get_waitable(const void * waitable_id)
 
     // The waitable expired, remove from map
     weak_waitables_map_.erase(it);
+    std::cout << "[m] - weak_waitables_map_.erase - " << waitable_id << std::endl;
   }
   return nullptr;
 }
@@ -412,6 +413,7 @@ EventsExecutorEntitiesCollector::add_waitable(rclcpp::Waitable::SharedPtr waitab
 {
   std::lock_guard<std::recursive_mutex> lock(reentrant_mutex_);
 
+  std::cout << "[m] - weak_waitables_map_.emplace - " << waitable.get() << std::endl;
   weak_waitables_map_.emplace(waitable.get(), waitable);
 
   waitable->set_on_ready_callback(
@@ -453,7 +455,10 @@ std::function<void(size_t, int)>
 EventsExecutorEntitiesCollector::create_waitable_callback(void * exec_entity_id)
 {
   std::function<void(size_t, int)>
-  callback = [this, exec_entity_id](size_t num_events, int gen_entity_id) {
+    callback = [this, exec_entity_id](size_t num_events, int gen_entity_id) {
+      if (!num_events) {
+        std::cout << "Empty callback test!" << std::endl;
+      }
       ExecutorEvent event =
       {exec_entity_id, gen_entity_id, ExecutorEventType::WAITABLE_EVENT, num_events};
       associated_executor_->events_queue_->enqueue(event);
