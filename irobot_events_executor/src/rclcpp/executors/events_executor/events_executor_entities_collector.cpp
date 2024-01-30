@@ -195,75 +195,56 @@ void
 EventsExecutorEntitiesCollector::set_callback_group_entities_callbacks(
   rclcpp::CallbackGroup::SharedPtr group)
 {
-  size_t timers = 0;
-  size_t subs = 0;
-  size_t srv = 0;
-  size_t cli = 0;
-  size_t wait = 0;
-
-  auto start = std::chrono::high_resolution_clock::now();
-
   // Timers are handled by the timers manager
   group->find_timer_ptrs_if(
-    [this, &timers](const rclcpp::TimerBase::SharedPtr & timer) {
+    [this](const rclcpp::TimerBase::SharedPtr & timer) {
       if (timer) {
         timers_manager_->add_timer(timer);
-        timers++;
       }
       return false;
     });
 
   // Set callbacks for all other entity types
   group->find_subscription_ptrs_if(
-    [this, &subs](const rclcpp::SubscriptionBase::SharedPtr & subscription) {
+    [this](const rclcpp::SubscriptionBase::SharedPtr & subscription) {
       if (subscription) {
         weak_subscriptions_map_.emplace(subscription.get(), subscription);
 
         subscription->set_on_new_message_callback(
           create_entity_callback(subscription.get(), ExecutorEventType::SUBSCRIPTION_EVENT));
-        subs++;
       }
       return false;
     });
   group->find_service_ptrs_if(
-    [this, &srv](const rclcpp::ServiceBase::SharedPtr & service) {
+    [this](const rclcpp::ServiceBase::SharedPtr & service) {
       if (service) {
         weak_services_map_.emplace(service.get(), service);
 
         service->set_on_new_request_callback(
           create_entity_callback(service.get(), ExecutorEventType::SERVICE_EVENT));
-        srv++;
       }
       return false;
     });
   group->find_client_ptrs_if(
-    [this, &cli](const rclcpp::ClientBase::SharedPtr & client) {
+    [this](const rclcpp::ClientBase::SharedPtr & client) {
       if (client) {
         weak_clients_map_.emplace(client.get(), client);
 
         client->set_on_new_response_callback(
           create_entity_callback(client.get(), ExecutorEventType::CLIENT_EVENT));
-        cli++;
       }
       return false;
     });
   group->find_waitable_ptrs_if(
-    [this, &wait](const rclcpp::Waitable::SharedPtr & waitable) {
+    [this](const rclcpp::Waitable::SharedPtr & waitable) {
       if (waitable) {
         weak_waitables_map_.emplace(waitable.get(), waitable);
 
         waitable->set_on_ready_callback(
           create_waitable_callback(waitable.get()));
-        wait++;
       }
       return false;
     });
-
-    auto end = std::chrono::high_resolution_clock::now();
-
-    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
-
-    std::cout << "[m] Callbacks: Timers: " << timers << " - subs: " <<  subs << " - srv: " <<  srv << " - cli: " << cli << " - wait: " << wait << " - time [us]: " << duration.count() << " - " << this << std::endl;
 }
 
 void
@@ -474,7 +455,7 @@ EventsExecutorEntitiesCollector::create_waitable_callback(void * exec_entity_id)
   std::function<void(size_t, int)>
   callback = [this, exec_entity_id](size_t num_events, int gen_entity_id) {
       ExecutorEvent event =
-        {exec_entity_id, gen_entity_id, ExecutorEventType::WAITABLE_EVENT, num_events};
+      {exec_entity_id, gen_entity_id, ExecutorEventType::WAITABLE_EVENT, num_events};
       associated_executor_->events_queue_->enqueue(event);
     };
   return callback;
