@@ -86,6 +86,7 @@ EventsExecutorEntitiesCollector::init()
   std::lock_guard<std::recursive_mutex> lock(reentrant_mutex_);
   // Add the EventsExecutorEntitiesCollector shared_ptr to waitables map
   weak_waitables_map_.emplace(this, this->shared_from_this());
+  weak_waitables_map_other_.emplace(this, this->shared_from_this());
 }
 
 void
@@ -97,10 +98,12 @@ EventsExecutorEntitiesCollector::execute(std::shared_ptr<void> & data)
 
   std::lock_guard<std::recursive_mutex> lock(reentrant_mutex_);
 
-  weak_clients_map_.clear();
-  weak_services_map_.clear();
   weak_waitables_map_.clear();
-  weak_subscriptions_map_.clear();
+
+  // Copying elements from source to destination
+  for (const auto& pair : weak_waitables_map_other_) {
+      weak_waitables_map_.insert(pair);
+  }
 
   timers_manager_->clear();
 
@@ -243,7 +246,10 @@ EventsExecutorEntitiesCollector::set_callback_group_entities_callbacks(
   group->find_waitable_ptrs_if(
     [this](const rclcpp::Waitable::SharedPtr & waitable) {
       if (waitable) {
-        add_waitable(waitable);
+        weak_waitables_map_.emplace(waitable.get(), waitable);
+
+        waitable->set_on_ready_callback(
+          create_waitable_callback(waitable.get()));
       }
       return false;
     });
@@ -417,6 +423,7 @@ EventsExecutorEntitiesCollector::add_waitable(rclcpp::Waitable::SharedPtr waitab
 
   std::cout << "[m] - weak_waitables_map_.emplace - " << waitable.get() << std::endl;
   weak_waitables_map_.emplace(waitable.get(), waitable);
+  weak_waitables_map_other_.emplace(waitable.get(), waitable);
 
   waitable->set_on_ready_callback(
     create_waitable_callback(waitable.get()));

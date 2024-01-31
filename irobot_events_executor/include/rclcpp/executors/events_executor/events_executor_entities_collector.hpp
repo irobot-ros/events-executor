@@ -204,6 +204,7 @@ private:
   std::unordered_map<const void *, rclcpp::ServiceBase::WeakPtr> weak_services_map_;
   std::unordered_map<const void *, rclcpp::ClientBase::WeakPtr> weak_clients_map_;
   std::unordered_map<const void *, rclcpp::Waitable::WeakPtr> weak_waitables_map_;
+  std::unordered_map<const void *, rclcpp::Waitable::WeakPtr> weak_waitables_map_other_;
 
   /// Executor using this entities collector object
   EventsExecutor * associated_executor_ = nullptr;
