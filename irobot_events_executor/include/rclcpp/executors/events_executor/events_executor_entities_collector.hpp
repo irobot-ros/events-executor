@@ -201,7 +201,10 @@ private:
   std::unordered_map<const void *, rclcpp::SubscriptionBase::WeakPtr> weak_subscriptions_map_;
   std::unordered_map<const void *, rclcpp::ServiceBase::WeakPtr> weak_services_map_;
   std::unordered_map<const void *, rclcpp::ClientBase::WeakPtr> weak_clients_map_;
+  // Map holding all weak waitables of the system
   std::unordered_map<const void *, rclcpp::Waitable::WeakPtr> weak_waitables_map_;
+  // Map holding non-user weak waitables, i.e. no IPC entities or actions
+  std::unordered_map<const void *, rclcpp::Waitable::WeakPtr> non_user_weak_waitables_map_;
 
   /// Executor using this entities collector object
   EventsExecutor * associated_executor_ = nullptr;
