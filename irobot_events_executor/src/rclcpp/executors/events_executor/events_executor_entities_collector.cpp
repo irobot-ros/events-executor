@@ -101,8 +101,6 @@ EventsExecutorEntitiesCollector::execute(std::shared_ptr<void> & data)
   weak_services_map_.clear();
   weak_waitables_map_.clear();
   weak_subscriptions_map_.clear();
-  weak_nodes_to_guard_conditions_.clear();
-  weak_groups_to_guard_conditions_.clear();
 
   timers_manager_->clear();
 
