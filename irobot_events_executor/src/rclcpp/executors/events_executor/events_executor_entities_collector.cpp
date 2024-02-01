@@ -104,6 +104,7 @@ EventsExecutorEntitiesCollector::execute(std::shared_ptr<void> & data)
   weak_clients_map_.clear();
   weak_services_map_.clear();
   weak_waitables_map_.clear();
+  weak_subscriptions_map_.clear();
 
   // Copy non-user waitables to weak_waitables_map_
   for (const auto& pair : non_user_weak_waitables_map_) {
