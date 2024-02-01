@@ -86,6 +86,7 @@ EventsExecutorEntitiesCollector::init()
   std::lock_guard<std::recursive_mutex> lock(reentrant_mutex_);
   // Add the EventsExecutorEntitiesCollector shared_ptr to waitables map
   weak_waitables_map_.emplace(this, this->shared_from_this());
+  non_user_weak_waitables_map_.emplace(this, this->shared_from_this());
 }
 
 void
@@ -96,6 +97,19 @@ EventsExecutorEntitiesCollector::execute(std::shared_ptr<void> & data)
   (void)data;
 
   std::lock_guard<std::recursive_mutex> lock(reentrant_mutex_);
+
+  // Clear maps to ensure that after execute, they hold non-expired entities.
+  // This fixes the issue of new entities sharing the same memory released by
+  // a previous entity, where trying to lock the weak pointer failed.
+  weak_clients_map_.clear();
+  weak_services_map_.clear();
+  weak_waitables_map_.clear();
+  weak_subscriptions_map_.clear();
+
+  // Copy non-user waitables to weak_waitables_map_
+  for (const auto& pair : non_user_weak_waitables_map_) {
+      weak_waitables_map_.insert(pair);
+  }
 
   timers_manager_->clear();
 
@@ -361,6 +375,7 @@ EventsExecutorEntitiesCollector::get_client(const void * client_id)
 
     // The client expired, remove from map
     weak_clients_map_.erase(it);
+    RCLCPP_WARN(rclcpp::get_logger("rclcpp"), "Client expired! ID: %p", client_id);
   }
   return nullptr;
 }
@@ -382,6 +397,7 @@ EventsExecutorEntitiesCollector::get_service(const void * service_id)
 
     // The service expired, remove from map
     weak_services_map_.erase(it);
+    RCLCPP_WARN(rclcpp::get_logger("rclcpp"), "Service expired! ID: %p", service_id);
   }
   return nullptr;
 }
@@ -403,6 +419,7 @@ EventsExecutorEntitiesCollector::get_waitable(const void * waitable_id)
 
     // The waitable expired, remove from map
     weak_waitables_map_.erase(it);
+    RCLCPP_WARN(rclcpp::get_logger("rclcpp"), "Waitable expired! ID: %p", waitable_id);
   }
   return nullptr;
 }
@@ -413,6 +430,7 @@ EventsExecutorEntitiesCollector::add_waitable(rclcpp::Waitable::SharedPtr waitab
   std::lock_guard<std::recursive_mutex> lock(reentrant_mutex_);
 
   weak_waitables_map_.emplace(waitable.get(), waitable);
+  non_user_weak_waitables_map_.emplace(waitable.get(), waitable);
 
   waitable->set_on_ready_callback(
     create_waitable_callback(waitable.get()));
