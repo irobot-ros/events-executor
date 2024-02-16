@@ -4,7 +4,7 @@
 #define IROBOT_LOCK_FREE_EVENTS_QUEUE__LOCK_FREE_EVENTS_QUEUE_HPP_
 
 #include "irobot_lock_free_events_queue/concurrent_queue/blockingconcurrentqueue.h"
-#include "rclcpp/executors/events_executor/events_queue.hpp"
+#include "rclcpp/experimental/executors/events_executor/events_queue.hpp"
 
 /**
  * @brief This class implements an EventsQueue as a simple wrapper around
@@ -17,7 +17,7 @@
  * queue aims to fix the issue of publishers being blocked by the executor extracting
  * events from the queue in a different thread, causing expensive mutex contention.
  */
-class LockFreeEventsQueue : public rclcpp::executors::EventsQueue
+class LockFreeEventsQueue : public rclcpp::experimental::executors::EventsQueue
 {
 public:
   RCLCPP_PUBLIC
@@ -26,7 +26,7 @@ public:
     // It's important that all threads have finished using the queue
     // and the memory effects have fully propagated, before it is destructed.
     // Consume all events
-    rclcpp::executors::ExecutorEvent event;
+    rclcpp::experimental::executors::ExecutorEvent event;
     while (event_queue_.try_dequeue(event)) {}
   }
 
@@ -36,9 +36,9 @@ public:
    */
   RCLCPP_PUBLIC
   void
-  enqueue(const rclcpp::executors::ExecutorEvent & event) override
+  enqueue(const rclcpp::experimental::executors::ExecutorEvent & event) override
   {
-    rclcpp::executors::ExecutorEvent single_event = event;
+    rclcpp::experimental::executors::ExecutorEvent single_event = event;
     single_event.num_events = 1;
     for (size_t ev = 0; ev < event.num_events; ev++) {
       event_queue_.enqueue(single_event);
@@ -52,7 +52,7 @@ public:
   RCLCPP_PUBLIC
   bool
   dequeue(
-    rclcpp::executors::ExecutorEvent & event,
+    rclcpp::experimental::executors::ExecutorEvent & event,
     std::chrono::nanoseconds timeout = std::chrono::nanoseconds::max()) override
   {    
     if (timeout != std::chrono::nanoseconds::max()) {
@@ -89,7 +89,7 @@ public:
   }
 
 private:
-  moodycamel::BlockingConcurrentQueue<rclcpp::executors::ExecutorEvent> event_queue_;
+  moodycamel::BlockingConcurrentQueue<rclcpp::experimental::executors::ExecutorEvent> event_queue_;
 };
 
 #endif  // IROBOT_LOCK_FREE_EVENTS_QUEUE__LOCK_FREE_EVENTS_QUEUE_HPP_
